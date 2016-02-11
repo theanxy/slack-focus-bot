@@ -1,27 +1,28 @@
 'use strict';
 
-var _ = require('lodash');
-var request = require('request');
-var Botkit = require('botkit');
-var Firebase = require('firebase');
-var config = require('./config');
+const _ = require('lodash');
+const request = require('request');
+const Botkit = require('botkit');
+const Firebase = require('firebase');
+const config = require('./config');
 
 if (!config.slackToken|| !config.firebaseToken) {
     console.log('Error: Specify slack and firebase tokens first.');
     process.exit(1);
 }
 
-var emailsToIds = {};
-
-var controller = Botkit.slackbot({
+let controller = Botkit.slackbot({
     debug: false
 });
 
-var bot = controller.spawn({
+let bot = controller.spawn({
     token: config.slackToken
 });
 
-var ref = new Firebase(config.firebaseUrl);
+let ref = new Firebase(config.firebaseUrl);
+
+let emailsToIds = {};
+
 
 ref.authWithCustomToken(config.firebaseToken, (error) => {
     if (error) {
@@ -46,7 +47,16 @@ bot.startRTM(err => {
     }
 });
 
-// Bot commands
+/**
+ * Bot commands
+ */
+
+// Introduction
+controller.hears(['hello','hi'],['direct_message','direct_mention','mention'], (bot,message) => {
+    bot.reply(message,"Hey! You can use me to preview unleash tasks this way: `show <user@x-team.com>`");
+});
+
+// Show cards by a given user
 controller.hears(['show (.*)'],'direct_message,direct_mention,mention', handleCards);
 
 function handleCards(bot, message) {
@@ -113,7 +123,7 @@ function renderListOfCards(convo, user, email) {
                     const choice = parseInt(response.text, 10);
 
                     if (_.isNumber(choice) && _.inRange(choice, 1, cards.length + 1)) {
-                        var currentCard = cards[choice-1];
+                        let currentCard = cards[choice-1];
 
                         convo.say(renderSingleCard(choice, currentCard, user));
                     }
